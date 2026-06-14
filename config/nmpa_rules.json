@@ -1,0 +1,58 @@
+﻿{
+  "demo_rules": [
+    {
+      "id": "D01",
+      "match": "说明书|产品说明书|目标产品说明书",
+      "severity": "critical",
+      "msg": "缺少产品说明书"
+    },
+    {
+      "id": "D02",
+      "match": "产品技术要求",
+      "severity": "critical",
+      "msg": "缺少产品技术要求"
+    },
+    {
+      "id": "D03",
+      "match": "临床评价|临床试验",
+      "severity": "critical",
+      "msg": "缺少临床评价资料"
+    },
+    {
+      "id": "D04",
+      "match": "注册检验|检验报告",
+      "severity": "warning",
+      "msg": "缺少注册检验报告"
+    }
+  ],
+  "ch1_required": [
+    {"code": "CH1.2", "title": "章节目录", "match": "CH1.2|监管信息目录", "required": true, "severity": "critical"},
+    {"code": "CH1.4", "title": "申请表", "match": "CH1.4|申请表", "required": true, "severity": "critical"},
+    {"code": "CH1.5", "title": "产品列表", "match": "CH1.5|产品列表", "required": true, "severity": "critical"},
+    {"code": "CH1.6", "title": "质量管理体系或其他证明文件", "match": "CH1.6|营业执照", "required": true, "severity": "critical"},
+    {"code": "CH1.9", "title": "申报前沟通说明", "match": "CH1.9|申报前|沟通", "required": false, "severity": "warning", "conditional": "有既往申报或申报前沟通时必需"},
+    {"code": "CH1.11.1", "title": "符合标准清单", "match": "CH1.11.1|符合标准", "required": true, "severity": "critical"},
+    {"code": "CH1.11.5", "title": "真实性声明", "match": "CH1.11.5|真实性", "required": true, "severity": "critical"},
+    {"code": "CH1.11.6", "title": "符合性声明", "match": "CH1.11.6|符合性", "required": true, "severity": "critical"}
+  ],
+  "chapters_outline": [
+    {"chapter": "第2章 综述资料", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"},
+    {"chapter": "第3章 非临床资料", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"},
+    {"chapter": "第4章 临床评价资料", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"},
+    {"chapter": "第5章 产品说明书和标签样稿", "enabled_in_demo": true, "match": "说明书|标签"},
+    {"chapter": "第6章 质量管理体系文件", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"}
+  ],
+  "manual_required_sections": [
+    "【产品名称】",
+    "【包装规格】",
+    "【预期用途】",
+    "【检测原理】",
+    "【主要组成成分】",
+    "【储存条件及有效期】",
+    "【样本要求】",
+    "【适用仪器】",
+    "【检验方法】",
+    "【产品性能指标】",
+    "【基本信息】"
+  ]
+}

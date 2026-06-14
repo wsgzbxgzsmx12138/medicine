@@ -1,0 +1,55 @@
+﻿{
+  "source_manual_patterns": {
+    "product_name": ["【产品名称】", "产品名称"],
+    "pack_specs": ["【包装规格】", "包装规格"],
+    "intended_use": ["【预期用途】", "预期用途"],
+    "storage_condition": ["【储存条件及有效期】", "储存条件"],
+    "detection_principle": ["【检测原理】", "检测原理"],
+    "manufacturer_name": ["注册人/售后服务单位名称", "生产企业名称"],
+    "manufacturer_address": ["生产企业住所", "生产地址"],
+    "contact_info": ["联系方式"],
+    "sample_types": ["适用样本类型", "【样本要求】"],
+    "instruments": ["【适用仪器】", "适用仪器"],
+    "lod": ["最低检出限", "最低检测限"],
+    "pos_rate": ["阳性符合率"],
+    "neg_rate": ["阴性符合率"]
+  },
+  "targets": {
+    "CH1.4": {
+      "template_glob": "CH1.4*申请表*.docx",
+      "output": "CH1.4_申请表_已填写.docx",
+      "fields": [
+        {"source": "product_name", "label": "产品名称", "table": 0, "row_label": "产品名称"},
+        {"source": "intended_use", "label": "预期用途", "table": 0, "row_label": "预期用途"},
+        {"source": "storage_condition", "label": "产品储存条件及有效期", "table": 0, "row_label": "产品储存条"},
+        {"source": "pack_specs", "label": "包装规格", "table": 0, "row_label": "包装规格"}
+      ]
+    },
+    "CH1.11.1": {
+      "template_glob": "CH1.11.1*符合标准*.docx",
+      "output": "CH1.11.1_标准清单_已填写.docx",
+      "append_standards": true
+    }
+  },
+  "consistency_fields": [
+    {
+      "field": "product_name",
+      "label": "产品名称",
+      "sources": [
+        {"doc_glob": "*说明书*.docx", "extract": "regex_section", "section": "【产品名称】"},
+        {"doc_glob": "CH1.4*申请表*.docx", "extract": "table_label", "label": "产品名称"},
+        {"doc_glob": "CH1.5*产品列表*.docx", "extract": "first_heading"},
+        {"doc_glob": "CH1.11.5*真实性*.docx", "extract": "regex", "pattern": "申请境内第三类体外诊断试剂(.+?)注册"},
+        {"doc_glob": "CH1.11.6*符合性*.docx", "extract": "regex", "pattern": "申请境内第三类体外诊断试剂(.+?)产品注册"}
+      ]
+    },
+    {
+      "field": "manufacturer_name",
+      "label": "注册人/企业名称",
+      "sources": [
+        {"doc_glob": "*说明书*.docx", "extract": "regex_line", "pattern": "注册人/售后服务单位名称：(.+)"},
+        {"doc_glob": "CH1.4*申请表*.docx", "extract": "table_label", "label": "名称", "context": "申请人"}
+      ]
+    }
+  ]
+}
