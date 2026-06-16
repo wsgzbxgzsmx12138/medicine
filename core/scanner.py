@@ -72,18 +72,32 @@ def guess_title(name: str, chapter: str | None) -> str:
     return Path(name).stem
 
 
-def scan_directory(upload_dir: Path) -> list[FileInfo]:
+SUPPORTED_SCAN_SUFFIXES = {".docx", ".pdf", ".doc"}
+
+
+def scan_directory(upload_dir: Path, *, recursive: bool = True) -> list[FileInfo]:
     files: list[FileInfo] = []
     if not upload_dir.exists():
         return files
 
-    for path in sorted(upload_dir.iterdir()):
-        if not path.is_file():
-            continue
+    if recursive:
+        paths = sorted(
+            p for p in upload_dir.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED_SCAN_SUFFIXES
+        )
+    else:
+        paths = sorted(
+            p for p in upload_dir.iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED_SCAN_SUFFIXES
+        )
+
+    for path in paths:
+        try:
+            rel_name = str(path.relative_to(upload_dir))
+        except ValueError:
+            rel_name = path.name
         chapter = chapter_code_from_name(path.name)
         files.append(
             FileInfo(
-                file_name=path.name,
+                file_name=rel_name,
                 file_path=str(path),
                 file_format=path.suffix.lower().lstrip(".") or "unknown",
                 page_count=count_pages(path),

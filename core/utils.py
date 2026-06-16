@@ -39,12 +39,14 @@ def normalize_text(text: str | None) -> str:
     return text.lower()
 
 
-def glob_files(directory: Path, pattern: str) -> list[Path]:
+def glob_files(directory: Path, pattern: str, *, recursive: bool = True) -> list[Path]:
     if not directory.exists():
         return []
-    return sorted(
-        p for p in directory.iterdir() if p.is_file() and fnmatch(p.name, pattern)
-    )
+    if recursive:
+        candidates = [p for p in directory.rglob("*") if p.is_file()]
+    else:
+        candidates = [p for p in directory.iterdir() if p.is_file()]
+    return sorted(p for p in candidates if fnmatch(p.name, pattern))
 
 
 def read_prompt(name: str, **kwargs: str) -> str:

@@ -6,7 +6,7 @@ from typing import Any
 
 from core.checker import CompletenessIssue, ConsistencyIssue, StructureIssue
 from core.extractor import ExtractedInfo
-from core.llm_client import polish_report
+from core.llm_client import polish_report, should_use_llm
 from core.scanner import FileInfo
 from core.utils import ensure_dir
 
@@ -66,17 +66,20 @@ def generate_report(
     issues = build_issues_payload(completeness, consistency, structure)
     critical = sum(1 for i in issues if i["severity"] == "critical")
     warning = sum(1 for i in issues if i["severity"] == "warning")
+    llm_on = should_use_llm(use_llm_polish)
 
     lines = [
         "# 合规风险预警报告",
         "",
         f"> 生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"> 大模型：{'已启用（提取增强 + 报告润色）' if llm_on else '未启用（仅规则引擎）'}",
         "",
         "## 执行摘要",
         "",
         f"- 扫描文件数：**{len(file_list)}**",
         f"- 发现问题：**{len(issues)}**（严重 {critical} / 警告 {warning}）",
         f"- 已生成输出文件：**{len(filled_files)}**",
+        f"- 提取阶段 LLM：**{'是' if getattr(extracted, 'llm_used', False) else '否'}**",
         "",
         "## 一、文件完整性问题",
         "",
@@ -94,7 +97,7 @@ def generate_report(
 
     lines.extend(["", "## 二、信息提取结果", "", "| 字段 | 提取值 | 置信度 |", "|------|--------|--------|"])
     for key, val in extracted.to_dict().items():
-        if key in ("confidence", "targets"):
+        if key in ("confidence", "targets", "llm_used"):
             continue
         conf = extracted.confidence.get(key, "-")
         display = val if not isinstance(val, list) else "、".join(val)
@@ -133,7 +136,7 @@ def generate_report(
         lines.append("当前未发现需处理的合规风险。")
 
     if use_llm_polish:
-        polished = polish_report(issues)
+        polished = polish_report(issues, enabled=use_llm_polish)
         if polished:
             lines.extend(["", "## 七、LLM 润色建议（非判定依据）", "", polished])
 

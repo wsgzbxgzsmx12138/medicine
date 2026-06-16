@@ -7,7 +7,7 @@ from typing import Any
 
 from docx import Document
 
-from core.llm_client import extract_with_llm, llm_available
+from core.llm_client import extract_with_llm, should_use_llm
 from core.utils import glob_files, load_json, normalize_text
 
 
@@ -29,6 +29,7 @@ class ExtractedInfo:
     targets: list[str] = field(default_factory=list)
     confidence: dict[str, str] = field(default_factory=dict)
     source_file: str = ""
+    llm_used: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -48,6 +49,7 @@ class ExtractedInfo:
             "targets": self.targets,
             "confidence": self.confidence,
             "source_file": self.source_file,
+            "llm_used": self.llm_used,
         }
 
 
@@ -117,14 +119,68 @@ def extract_by_rules(text: str) -> ExtractedInfo:
     return info
 
 
-def merge_llm(info: ExtractedInfo, llm_data: dict[str, Any]) -> ExtractedInfo:
+# 启用 LLM 时，对这些语义字段用模型结果精炼/摘要（规则仍保留作对照）
+LLM_ENHANCE_FIELDS = frozenset(
+    {
+        "intended_use",
+        "detection_principle",
+        "sample_types",
+        "storage_condition",
+        "manufacturer_name",
+        "manufacturer_address",
+        "contact_info",
+        "lod",
+        "pos_rate",
+        "neg_rate",
+    }
+)
+
+
+def _trim_intended_use(text: str) -> str:
+    """预期用途取首段核心表述，便于填入申请表。"""
+    text = re.sub(r"\s+", " ", text.strip())
+    for sep in ("。", "；", "\n"):
+        if sep in text:
+            first = text.split(sep)[0].strip()
+            if len(first) > 20:
+                return first + ("。" if sep == "。" else "")
+    return text[:400]
+
+
+def merge_llm(info: ExtractedInfo, llm_data: dict[str, Any], *, enhance: bool = False) -> ExtractedInfo:
     for key, val in llm_data.items():
-        if key in ("confidence", "source_section"):
+        if key in ("confidence", "source_section", "source_file", "llm_used", "targets"):
             continue
+        if val in (None, "", "未提及"):
+            continue
+
+        if key == "instruments" and isinstance(val, list):
+            llm_val: Any = [str(x).strip() for x in val if str(x).strip()]
+        elif key == "instruments" and isinstance(val, str):
+            llm_val = [x.strip() for x in re.split(r"[、,，;；]", val) if x.strip()]
+        elif key == "intended_use" and isinstance(val, str):
+            llm_val = _trim_intended_use(val)
+        elif key == "detection_principle" and isinstance(val, str):
+            llm_val = val[:500]
+        else:
+            llm_val = val
+
         current = getattr(info, key, None)
-        if current in (None, "未提及", [], "") and val and val != "未提及":
-            setattr(info, key, val)
+
+        if enhance and key in LLM_ENHANCE_FIELDS:
+            setattr(info, key, llm_val)
+            cur_norm = normalize_text(str(current)) if current not in (None, "未提及", "", []) else ""
+            llm_norm = normalize_text(str(llm_val)) if not isinstance(llm_val, list) else ""
+            if cur_norm and llm_norm and (cur_norm in llm_norm or llm_norm in cur_norm or cur_norm == llm_norm):
+                info.confidence[key] = "高(规则+LLM)"
+            else:
+                info.confidence[key] = "中(LLM)"
+            continue
+
+        if current in (None, "未提及", [], ""):
+            setattr(info, key, llm_val)
             info.confidence[key] = "中(LLM)"
+
     return info
 
 
@@ -133,7 +189,7 @@ def find_manual(upload_dir: Path) -> Path | None:
     return files[0] if files else None
 
 
-def extract_from_upload(upload_dir: Path) -> ExtractedInfo:
+def extract_from_upload(upload_dir: Path, *, use_llm: bool = True) -> ExtractedInfo:
     manual = find_manual(upload_dir)
     if not manual:
         return ExtractedInfo(confidence={"_error": "未找到产品说明书"})
@@ -142,9 +198,13 @@ def extract_from_upload(upload_dir: Path) -> ExtractedInfo:
     info = extract_by_rules(text)
     info.source_file = manual.name
 
-    if llm_available():
+    if should_use_llm(use_llm):
+        info.llm_used = True
         llm_data = extract_with_llm(text)
-        info = merge_llm(info, llm_data)
+        if llm_data:
+            info = merge_llm(info, llm_data, enhance=True)
+        else:
+            info.confidence["_llm"] = "调用失败或未返回有效 JSON"
 
     for field_name in ("product_name", "intended_use", "pack_specs"):
         if field_name not in info.confidence and getattr(info, field_name) != "未提及":
@@ -155,7 +215,11 @@ def extract_from_upload(upload_dir: Path) -> ExtractedInfo:
 
 def read_document_texts(upload_dir: Path) -> dict[str, str]:
     texts: dict[str, str] = {}
-    for path in upload_dir.iterdir():
-        if path.suffix.lower() == ".docx":
-            texts[path.name] = read_docx_full_text(path)
+    for path in upload_dir.rglob("*.docx"):
+        if path.is_file():
+            try:
+                rel = str(path.relative_to(upload_dir))
+            except ValueError:
+                rel = path.name
+            texts[rel] = read_docx_full_text(path)
     return texts

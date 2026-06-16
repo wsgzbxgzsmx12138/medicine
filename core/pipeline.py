@@ -25,6 +25,8 @@ class PipelineResult:
     filled_files: list[str] = field(default_factory=list)
     output_files: dict[str, str] = field(default_factory=dict)
     report_path: str | None = None
+    use_llm: bool = False
+    llm_active: bool = False
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -34,12 +36,21 @@ class PipelineResult:
             "structure_issues": len(self.structure_issues),
             "filled_files": len(self.filled_files),
             "report": self.report_path,
+            "use_llm": self.use_llm,
+            "llm_active": self.llm_active,
         }
 
 
-def run_pipeline(upload_dir: Path, output_dir: Path | None = None) -> PipelineResult:
+def run_pipeline(
+    upload_dir: Path,
+    output_dir: Path | None = None,
+    *,
+    use_llm: bool = True,
+) -> PipelineResult:
+    from core.llm_client import should_use_llm
+
     output_dir = ensure_dir(output_dir or DEFAULT_OUTPUT)
-    result = PipelineResult()
+    result = PipelineResult(use_llm=use_llm, llm_active=should_use_llm(use_llm))
 
     # 阶段一：Scanner
     result.file_list = scan_directory(upload_dir)
@@ -51,7 +62,7 @@ def run_pipeline(upload_dir: Path, output_dir: Path | None = None) -> PipelineRe
     result.completeness_issues = check_completeness(result.file_list)
 
     # 阶段三：Extractor
-    result.extracted = extract_from_upload(upload_dir)
+    result.extracted = extract_from_upload(upload_dir, use_llm=use_llm)
     save_json(output_dir / "extracted_fields.json", result.extracted.to_dict())
 
     # 阶段四：Filler + 一致性
@@ -77,6 +88,7 @@ def run_pipeline(upload_dir: Path, output_dir: Path | None = None) -> PipelineRe
         result.structure_issues,
         result.filled_files,
         output_dir / "风险预警报告.md",
+        use_llm_polish=use_llm,
     )
     result.report_path = str(report_path)
     result.output_files["report"] = str(report_path)

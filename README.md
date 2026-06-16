@@ -7,8 +7,13 @@
 ```bash
 cd d:\project\medicine
 pip install -r requirements.txt
-python runner.py --input data/upload/normal
+
+# Streamlit：自由上传文件夹 或 选内置示例
 streamlit run app.py
+
+# CLI：分析任意本地文件夹
+python runner.py --input path/to/your/folder
+python runner.py --input data/upload/normal --no-llm   # 禁用大模型
 ```
 
 ## 功能

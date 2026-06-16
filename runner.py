@@ -28,14 +28,34 @@ def main() -> int:
         default=DEFAULT_OUTPUT,
         help="输出目录",
     )
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="禁用大模型（仅规则引擎）",
+    )
+    parser.add_argument(
+        "--llm",
+        action="store_true",
+        help="显式启用大模型（默认：已配置 API Key 时启用）",
+    )
     args = parser.parse_args()
+
+    from core.llm_client import llm_available, should_use_llm
+
+    if args.no_llm:
+        use_llm = False
+    elif args.llm:
+        use_llm = True
+    else:
+        use_llm = llm_available()
 
     if not args.input.exists():
         print(f"输入目录不存在: {args.input}")
         return 1
 
     print(f"扫描目录: {args.input}")
-    result = run_pipeline(args.input, args.output)
+    print(f"LLM: {'启用' if should_use_llm(use_llm) else '禁用'}")
+    result = run_pipeline(args.input, args.output, use_llm=use_llm)
     print(json.dumps(result.summary(), ensure_ascii=False, indent=2))
     print(f"\n报告: {result.report_path}")
     return 0

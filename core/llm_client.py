@@ -15,6 +15,11 @@ def llm_available() -> bool:
     return bool(os.getenv("LLM_API_KEY"))
 
 
+def should_use_llm(enabled: bool = True) -> bool:
+    """UI/CLI 开关与 API Key 同时满足时才调用大模型。"""
+    return enabled and llm_available()
+
+
 def call_llm(prompt: str) -> str | None:
     if not llm_available():
         return None
@@ -51,8 +56,8 @@ def extract_with_llm(text: str) -> dict[str, Any]:
         return {}
 
 
-def polish_report(issues: list[dict[str, Any]]) -> str | None:
-    if not issues or not llm_available():
+def polish_report(issues: list[dict[str, Any]], *, enabled: bool = True) -> str | None:
+    if not issues or not should_use_llm(enabled):
         return None
     prompt = read_prompt("risk_summary_prompt.md", ISSUES_JSON=json.dumps(issues, ensure_ascii=False, indent=2))
     return call_llm(prompt)
