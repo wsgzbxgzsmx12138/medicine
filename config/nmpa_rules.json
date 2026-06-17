@@ -1,46 +1,226 @@
 ﻿{
-  "demo_rules": [
+  "regulation": {
+    "title": "关于公布医疗器械注册申报资料要求和批准证明文件格式的公告（2021年第121号）",
+    "news_url": "https://www.cmde.org.cn/xwdt/zxyw/20210930163300622.html",
+    "detail_url": "https://www.cmde.org.cn/flfg/fgwj/ggtg/20210930163300622.html",
+    "checklist_basis": "附件4《体外诊断试剂注册申报资料要求及说明》",
+    "default_notify": "注册事务负责人"
+  },
+  "cmde_attachments": [
     {
-      "id": "D01",
+      "id": "CMDE-A1",
+      "attachment_no": 1,
+      "title": "中华人民共和国医疗器械注册证（体外诊断试剂）（格式）",
+      "match": "医疗器械注册证|注册证.*体外诊断试剂.*格式",
+      "required_for_initial": false,
+      "severity": "info",
+      "msg": "未包含《医疗器械注册证（体外诊断试剂）格式》参考文件",
+      "suggestion": "该文件为批准后核发证照格式，首次注册申报资料包中通常无需提交；可忽略或作为内部参考",
+      "regulation_ref": "CMDE 公告附件1"
+    },
+    {
+      "id": "CMDE-A2",
+      "attachment_no": 2,
+      "title": "中华人民共和国医疗器械变更注册（备案）文件（体外诊断试剂）（格式）",
+      "match": "变更注册.*备案.*体外诊断试剂|变更注册.*格式",
+      "required_for_initial": false,
+      "severity": "info",
+      "msg": "未包含变更注册（备案）文件格式参考",
+      "suggestion": "适用于变更注册场景，首次注册申报可忽略",
+      "regulation_ref": "CMDE 公告附件2"
+    },
+    {
+      "id": "CMDE-A3",
+      "attachment_no": 3,
+      "title": "医疗器械注册申报资料和批准证明文件格式要求（体外诊断试剂）",
+      "match": "注册申报资料.*批准证明文件格式要求|批准证明文件格式要求",
+      "required_for_initial": false,
+      "severity": "warning",
+      "msg": "缺少《注册申报资料和批准证明文件格式要求（体外诊断试剂）》（附件3）",
+      "suggestion": "建议在上传包中保留 CMDE 附件3 作为格式对照依据",
+      "regulation_ref": "CMDE 公告附件3"
+    },
+    {
+      "id": "CMDE-A4",
+      "attachment_no": 4,
+      "title": "体外诊断试剂注册申报资料要求及说明",
+      "match": "注册申报资料要求及说明|附件4|附件 4|附件+4",
+      "required_for_initial": true,
+      "severity": "warning",
+      "msg": "缺少法规基准《体外诊断试剂注册申报资料要求及说明》（附件4）",
+      "suggestion": "请在上传文件夹中包含 CMDE 公告附件4，作为完整性核查的法规依据",
+      "regulation_ref": "CMDE 公告附件4"
+    },
+    {
+      "id": "CMDE-A5",
+      "attachment_no": 5,
+      "title": "体外诊断试剂延续注册申报资料要求及说明",
+      "match": "延续注册申报资料要求",
+      "required_for_initial": false,
+      "severity": "info",
+      "msg": "未包含延续注册申报资料要求及说明",
+      "suggestion": "适用于延续注册场景，首次注册申报可忽略",
+      "regulation_ref": "CMDE 公告附件5"
+    },
+    {
+      "id": "CMDE-A6",
+      "attachment_no": 6,
+      "title": "体外诊断试剂变更备案/变更注册申报资料要求及说明",
+      "match": "变更备案|变更注册申报资料要求",
+      "required_for_initial": false,
+      "severity": "info",
+      "msg": "未包含变更备案/变更注册申报资料要求及说明",
+      "suggestion": "适用于变更注册场景，首次注册申报可忽略",
+      "regulation_ref": "CMDE 公告附件6"
+    },
+    {
+      "id": "CMDE-A7",
+      "attachment_no": 7,
+      "title": "体外诊断试剂安全和性能基本原则清单",
+      "match": "安全和性能基本原则|基本原则清单|安全.*性能.*原则",
+      "required_for_initial": true,
+      "severity": "critical",
+      "msg": "缺少《体外诊断试剂安全和性能基本原则清单》（附件7）",
+      "suggestion": "请按 CMDE 公告附件7 填写并提交安全和性能基本原则清单",
+      "regulation_ref": "CMDE 公告附件7"
+    }
+  ],
+  "submission_required": [
+    {
+      "id": "R-CH5-01",
+      "section": "第5章",
+      "title": "产品说明书",
       "match": "说明书|产品说明书|目标产品说明书",
       "severity": "critical",
-      "msg": "缺少产品说明书"
+      "msg": "缺少产品说明书",
+      "suggestion": "请提交第5章「产品说明书和标签样稿」中的产品说明书",
+      "regulation_ref": "附件4 第5章"
     },
     {
-      "id": "D02",
-      "match": "产品技术要求",
+      "id": "R-CH3-01",
+      "section": "第3章",
+      "title": "产品技术要求",
+      "match": "产品技术要求|技术要求",
       "severity": "critical",
-      "msg": "缺少产品技术要求"
+      "msg": "缺少产品技术要求",
+      "suggestion": "请提交第3章非临床资料中的产品技术要求",
+      "regulation_ref": "附件4 第3章"
     },
     {
-      "id": "D03",
-      "match": "临床评价|临床试验",
-      "severity": "critical",
-      "msg": "缺少临床评价资料"
-    },
-    {
-      "id": "D04",
-      "match": "注册检验|检验报告",
+      "id": "R-CH3-02",
+      "section": "第3章",
+      "title": "注册检验报告",
+      "match": "注册检验|检验报告|型式检验",
       "severity": "warning",
-      "msg": "缺少注册检验报告"
+      "msg": "缺少注册检验报告",
+      "suggestion": "请提交第3章非临床资料中的注册检验（型式检验）报告",
+      "regulation_ref": "附件4 第3章"
+    },
+    {
+      "id": "R-CH4-01",
+      "section": "第4章",
+      "title": "临床评价资料",
+      "match": "临床评价|临床试验|临床证据",
+      "severity": "critical",
+      "msg": "缺少临床评价资料",
+      "suggestion": "请提交第4章临床评价资料（临床评价报告或临床试验资料）",
+      "regulation_ref": "附件4 第4章"
+    },
+    {
+      "id": "R-CH2-01",
+      "section": "第2章",
+      "title": "综述资料",
+      "match": "综述资料|综述",
+      "severity": "warning",
+      "msg": "缺少综述资料",
+      "suggestion": "请提交第2章综述资料（产品概述、境内/境外上市情况等）",
+      "regulation_ref": "附件4 第2章"
+    },
+    {
+      "id": "R-CH6-01",
+      "section": "第6章",
+      "title": "质量管理体系文件",
+      "match": "质量管理体系|体系文件|质量手册",
+      "severity": "warning",
+      "msg": "缺少质量管理体系相关文件",
+      "suggestion": "请提交第6章质量管理体系文件（或按 CH1.6 提交体系证明/营业执照）",
+      "regulation_ref": "附件4 第6章"
     }
   ],
   "ch1_required": [
-    {"code": "CH1.2", "title": "章节目录", "match": "CH1.2|监管信息目录", "required": true, "severity": "critical"},
-    {"code": "CH1.4", "title": "申请表", "match": "CH1.4|申请表", "required": true, "severity": "critical"},
-    {"code": "CH1.5", "title": "产品列表", "match": "CH1.5|产品列表", "required": true, "severity": "critical"},
-    {"code": "CH1.6", "title": "质量管理体系或其他证明文件", "match": "CH1.6|营业执照", "required": true, "severity": "critical"},
-    {"code": "CH1.9", "title": "申报前沟通说明", "match": "CH1.9|申报前|沟通", "required": false, "severity": "warning", "conditional": "有既往申报或申报前沟通时必需"},
-    {"code": "CH1.11.1", "title": "符合标准清单", "match": "CH1.11.1|符合标准", "required": true, "severity": "critical"},
-    {"code": "CH1.11.5", "title": "真实性声明", "match": "CH1.11.5|真实性", "required": true, "severity": "critical"},
-    {"code": "CH1.11.6", "title": "符合性声明", "match": "CH1.11.6|符合性", "required": true, "severity": "critical"}
+    {
+      "code": "CH1.2",
+      "title": "章节目录",
+      "match": "CH1.2|监管信息目录",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.2"
+    },
+    {
+      "code": "CH1.4",
+      "title": "申请表",
+      "match": "CH1.4|申请表",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.4"
+    },
+    {
+      "code": "CH1.5",
+      "title": "产品列表",
+      "match": "CH1.5|产品列表",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.5"
+    },
+    {
+      "code": "CH1.6",
+      "title": "质量管理体系或其他证明文件",
+      "match": "CH1.6|营业执照|质量体系",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.6"
+    },
+    {
+      "code": "CH1.9",
+      "title": "申报前沟通说明",
+      "match": "CH1.9|申报前|沟通",
+      "required": false,
+      "severity": "warning",
+      "conditional": "有既往申报或申报前沟通时必需",
+      "regulation_ref": "附件4 第1章 CH1.9"
+    },
+    {
+      "code": "CH1.11.1",
+      "title": "符合标准清单",
+      "match": "CH1.11.1|符合标准",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.11.1"
+    },
+    {
+      "code": "CH1.11.5",
+      "title": "真实性声明",
+      "match": "CH1.11.5|真实性",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.11.5"
+    },
+    {
+      "code": "CH1.11.6",
+      "title": "符合性声明",
+      "match": "CH1.11.6|符合性",
+      "required": true,
+      "severity": "critical",
+      "regulation_ref": "附件4 第1章 CH1.11.6"
+    }
   ],
   "chapters_outline": [
-    {"chapter": "第2章 综述资料", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"},
-    {"chapter": "第3章 非临床资料", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"},
-    {"chapter": "第4章 临床评价资料", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"},
+    {"chapter": "第1章 监管信息", "enabled_in_demo": true, "match": "CH1"},
+    {"chapter": "第2章 综述资料", "enabled_in_demo": true, "match": "综述"},
+    {"chapter": "第3章 非临床资料", "enabled_in_demo": true, "match": "产品技术要求|注册检验"},
+    {"chapter": "第4章 临床评价资料", "enabled_in_demo": true, "match": "临床评价"},
     {"chapter": "第5章 产品说明书和标签样稿", "enabled_in_demo": true, "match": "说明书|标签"},
-    {"chapter": "第6章 质量管理体系文件", "enabled_in_demo": false, "note": "Demo 未纳入，V1.0 扩展"}
+    {"chapter": "第6章 质量管理体系文件", "enabled_in_demo": true, "match": "质量管理体系"}
   ],
   "manual_required_sections": [
     "【产品名称】",

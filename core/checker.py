@@ -18,6 +18,9 @@ class CompletenessIssue:
     severity: str
     message: str
     suggestion: str
+    regulation_ref: str = ""
+    notify: str = "注册事务负责人"
+    category: str = "申报资料"
 
 
 @dataclass
@@ -44,38 +47,102 @@ def _match_any(name: str, pattern: str) -> bool:
     return False
 
 
+def _default_notify(rules: dict[str, Any]) -> str:
+    return rules.get("regulation", {}).get("default_notify", "注册事务负责人")
+
+
+def _append_missing(
+    issues: list[CompletenessIssue],
+    *,
+    rule_id: str,
+    severity: str,
+    message: str,
+    suggestion: str,
+    regulation_ref: str,
+    notify: str,
+    category: str,
+) -> None:
+    issues.append(
+        CompletenessIssue(
+            rule_id=rule_id,
+            severity=severity,
+            message=message,
+            suggestion=suggestion,
+            regulation_ref=regulation_ref,
+            notify=notify,
+            category=category,
+        )
+    )
+
+
 def check_completeness(file_list: list[FileInfo], rules: dict[str, Any] | None = None) -> list[CompletenessIssue]:
+    """
+    对照 CMDE 2021年第121号公告及附件4《体外诊断试剂注册申报资料要求及说明》
+    检查上传文件夹中申报资料是否齐全。
+    """
     rules = rules or load_json("nmpa_rules.json")
     index = files_index(file_list)
+    notify = _default_notify(rules)
     issues: list[CompletenessIssue] = []
 
-    for rule in rules.get("demo_rules", []):
-        if not _match_any(index, rule["match"]):
-            issues.append(
-                CompletenessIssue(
-                    rule_id=rule["id"],
-                    severity=rule["severity"],
-                    message=rule["msg"],
-                    suggestion=f"请补充包含「{rule['match'].split('|')[0]}」关键词的申报文件",
-                )
-            )
+    # 1) CMDE 公告附件（图2 七份法规文件；首次注册仅强制 A4/A7，其余按配置）
+    for att in rules.get("cmde_attachments", []):
+        if not att.get("required_for_initial", False):
+            continue
+        if _match_any(index, att["match"]):
+            continue
+        _append_missing(
+            issues,
+            rule_id=att["id"],
+            severity=att.get("severity", "warning"),
+            message=att.get("msg", f"缺少 {att.get('title', '')}"),
+            suggestion=att.get("suggestion", f"请补充与「{att.get('title', '')}」对应的文件"),
+            regulation_ref=att.get("regulation_ref", f"CMDE 公告附件{att.get('attachment_no', '')}"),
+            notify=notify,
+            category="法规参考文件",
+        )
 
+    # 2) 附件4 各章必交申报资料（产品技术要求、临床评价、注册检验等）
+    for rule in rules.get("submission_required", []):
+        if _match_any(index, rule["match"]):
+            continue
+        _append_missing(
+            issues,
+            rule_id=rule["id"],
+            severity=rule.get("severity", "critical"),
+            message=rule.get("msg", f"缺少 {rule.get('title', '')}"),
+            suggestion=rule.get(
+                "suggestion",
+                f"请补充包含「{rule['match'].split('|')[0]}」关键词的申报文件",
+            ),
+            regulation_ref=rule.get("regulation_ref", rules.get("regulation", {}).get("checklist_basis", "")),
+            notify=notify,
+            category="申报资料",
+        )
+
+    # 3) 第1章 CH1 监管信息
     for rule in rules.get("ch1_required", []):
         if not rule.get("required", True):
             continue
-        if not _match_any(index, rule["match"]):
-            msg = f"缺少 {rule['code']} {rule.get('title', '')}"
-            if rule.get("conditional"):
-                msg += f"（{rule['conditional']}）"
-            issues.append(
-                CompletenessIssue(
-                    rule_id=rule["code"],
-                    severity=rule.get("severity", "critical"),
-                    message=msg,
-                    suggestion=f"请提交 {rule['code']} 对应资料文件",
-                )
-            )
+        if _match_any(index, rule["match"]):
+            continue
+        msg = f"缺少 {rule['code']} {rule.get('title', '')}"
+        if rule.get("conditional"):
+            msg += f"（{rule['conditional']}）"
+        _append_missing(
+            issues,
+            rule_id=rule["code"],
+            severity=rule.get("severity", "critical"),
+            message=msg,
+            suggestion=f"请提交 {rule['code']} {rule.get('title', '')} 对应资料文件",
+            regulation_ref=rule.get("regulation_ref", "附件4 第1章"),
+            notify=notify,
+            category="CH1 监管信息",
+        )
 
+    # 按严重等级排序：critical > warning > info
+    severity_order = {"critical": 0, "warning": 1, "info": 2}
+    issues.sort(key=lambda i: (severity_order.get(i.severity, 9), i.rule_id))
     return issues
 
 

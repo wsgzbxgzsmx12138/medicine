@@ -1,0 +1,6 @@
+﻿services:
+  - type: web
+    name: medicine
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile

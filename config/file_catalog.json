@@ -1,0 +1,63 @@
+﻿{
+  "categories": [
+    {
+      "id": "core_source",
+      "label": "核心数据源",
+      "description": "审评实质内容来源：说明书、技术要求、临床/检验资料、法规参考等，用于信息提取与一致性核查"
+    },
+    {
+      "id": "original_template",
+      "label": "申报原始模版",
+      "description": "用户上传的 CH1 监管信息表格及声明类空白/半成品模版，作为自动填写的输入底稿"
+    },
+    {
+      "id": "output_template",
+      "label": "输出文档模版",
+      "description": "流水线根据原始模版填写后生成的申报文件，存放于输出目录"
+    }
+  ],
+  "upload_rules": [
+    {
+      "category": "申报原始模版",
+      "patterns": [
+        "CH1.2",
+        "CH1.4",
+        "CH1.5",
+        "CH1.6",
+        "CH1.9",
+        "CH1.11",
+        "监管信息目录",
+        "申请表",
+        "产品列表",
+        "真实性声明",
+        "符合性声明",
+        "符合标准",
+        "申报前沟通"
+      ]
+    },
+    {
+      "category": "核心数据源",
+      "patterns": [
+        "说明书",
+        "产品技术要求",
+        "技术要求",
+        "临床评价",
+        "临床试验",
+        "注册检验",
+        "检验报告",
+        "附件",
+        "申报资料要求",
+        "标签样稿",
+        "标签",
+        "AI工具",
+        "需求"
+      ]
+    }
+  ],
+  "output_rules": {
+    "category": "输出文档模版",
+    "patterns_from_field_mapping": true,
+    "filename_patterns": ["_已填写", "标准清单_已填写", "申请表_已填写"]
+  },
+  "default_upload_category": "核心数据源"
+}

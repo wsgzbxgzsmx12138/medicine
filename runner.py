@@ -55,9 +55,11 @@ def main() -> int:
 
     print(f"扫描目录: {args.input}")
     print(f"LLM: {'启用' if should_use_llm(use_llm) else '禁用'}")
-    result = run_pipeline(args.input, args.output, use_llm=use_llm)
+    result = run_pipeline(args.input, args.output, use_llm=use_llm, log_source="CLI 命令行")
     print(json.dumps(result.summary(), ensure_ascii=False, indent=2))
     print(f"\n报告: {result.report_path}")
+    if result.log_path:
+        print(f"运行日志: {result.log_path}")
     return 0
 
 

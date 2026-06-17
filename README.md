@@ -35,7 +35,22 @@ python runner.py --input data/upload/normal --no-llm   # 禁用大模型
 
 ## LLM（可选）
 
-复制 `.env.example` 为 `.env` 并配置 `LLM_API_KEY`。未配置时完全使用规则引擎，不影响 Demo 运行。
+**网页端**：进入审核工作台后，在侧边栏 **大模型设置** 中填写 DeepSeek API Key（仅保存在当前浏览器会话，适合在线部署）。
+
+**命令行**：可复制 `.env.example` 为 `.env` 并配置 `LLM_API_KEY`。未配置时完全使用规则引擎，不影响 Demo 运行。
+
+## 在线部署
+
+本项目是 **Streamlit 应用**，需要长期运行的 Python 进程，**不能部署到 Vercel**（Vercel 仅支持静态站点与短时 Serverless 函数）。在 Vercel 上会出现克隆成功但构建失败，或找不到输出目录等错误。
+
+推荐使用 **Streamlit Community Cloud**（免费，直接关联 GitHub）：
+
+1. 打开 [share.streamlit.io](https://share.streamlit.io)，用 GitHub 登录
+2. 点击 **New app**，选择仓库 `wsgzbxgzsmx12138/medicine`，分支 `main`
+3. Main file path 填 `app.py`
+4. 点击 **Deploy**（大模型：用户进入工作台后在侧边栏自行填写 DeepSeek API Key，无需在 Secrets 中配置）
+
+备选：**Render**（仓库已含 `Dockerfile` 与 `render.yaml`，在 Render 控制台新建 Web Service 并关联 GitHub 即可）。
 
 ## 项目结构
 

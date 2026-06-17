@@ -1,4 +1,11 @@
 ﻿{
+  "mock_product_patterns": [
+    "呼吸道合胞病毒、肺炎支原体核酸检测试剂盒（荧光PCR法）",
+    "呼吸道合胞病毒、肺炎支原体核酸检测试剂盒"
+  ],
+  "mock_short_patterns": ["RSV&MP", "RSV&MP-PCR", "RSV&MP PCR"],
+  "template_signing_dates": ["2023年09月20日"],
+  "use_run_date_for_signing": true,
   "source_manual_patterns": {
     "product_name": ["【产品名称】", "产品名称"],
     "pack_specs": ["【包装规格】", "包装规格"],
@@ -15,20 +22,66 @@
     "neg_rate": ["阴性符合率"]
   },
   "targets": {
+    "CH1.2": {
+      "template_glob": "CH1.2*监管信息*.docx",
+      "output": "CH1.2_监管信息目录_已填写.docx",
+      "fill_type": "ch12_catalog",
+      "replace_mock": true,
+      "sync_pages": true
+    },
     "CH1.4": {
       "template_glob": "CH1.4*申请表*.docx",
       "output": "CH1.4_申请表_已填写.docx",
+      "fill_type": "table_fields",
+      "fill_cover": true,
+      "fill_form_options": true,
+      "fill_derived_fields": true,
+      "clear_attachment_placeholders": true,
+      "sync_attachment_list": true,
+      "cleanup_trailing_content": true,
+      "replace_signing_date": true,
       "fields": [
-        {"source": "product_name", "label": "产品名称", "table": 0, "row_label": "产品名称"},
-        {"source": "intended_use", "label": "预期用途", "table": 0, "row_label": "预期用途"},
-        {"source": "storage_condition", "label": "产品储存条件及有效期", "table": 0, "row_label": "产品储存条"},
-        {"source": "pack_specs", "label": "包装规格", "table": 0, "row_label": "包装规格"}
+        {"source": "product_name", "row_label": "产品名称"},
+        {"source": "intended_use", "row_label": "预期用途", "max_len": 800},
+        {"source": "pack_specs", "row_label": "包装规格", "max_len": 500},
+        {"source": "storage_condition", "row_label": "产品储存条", "max_len": 300},
+        {"source": "detection_principle", "row_label": "方法原理", "max_len": 500, "optional": true}
       ]
+    },
+    "CH1.5": {
+      "template_glob": "CH1.5*产品列表*.docx",
+      "output": "CH1.5_产品列表_已填写.docx",
+      "fill_type": "product_list",
+      "replace_signing_date": true
+    },
+    "CH1.9": {
+      "template_glob": "CH1.9*沟通*.doc",
+      "output": "CH1.9_申报前沟通说明_已填写.doc",
+      "fill_type": "legacy_doc",
+      "replace_mock": true,
+      "replace_signing_date": true
     },
     "CH1.11.1": {
       "template_glob": "CH1.11.1*符合标准*.docx",
       "output": "CH1.11.1_标准清单_已填写.docx",
-      "append_standards": true
+      "fill_type": "standards_list",
+      "replace_signing_date": true,
+      "use_llm": true
+    },
+    "CH1.11.5": {
+      "template_glob": "CH1.11.5*真实性*.docx",
+      "output": "CH1.11.5_真实性声明_已填写.docx",
+      "fill_type": "declaration",
+      "declaration_pattern": "申请境内第三类体外诊断试剂(.+?)注册",
+      "replace_signing_date": true,
+      "sync_materials_list": true
+    },
+    "CH1.11.6": {
+      "template_glob": "CH1.11.6*符合性*.docx",
+      "output": "CH1.11.6_符合性声明_已填写.docx",
+      "fill_type": "declaration",
+      "declaration_pattern": "申请境内第三类体外诊断试剂(.+?)产品注册",
+      "replace_signing_date": true
     }
   },
   "consistency_fields": [
@@ -47,7 +100,7 @@
       "field": "manufacturer_name",
       "label": "注册人/企业名称",
       "sources": [
-        {"doc_glob": "*说明书*.docx", "extract": "regex_line", "pattern": "注册人/售后服务单位名称：(.+)"},
+        {"doc_glob": "*说明书*.docx", "extract": "regex_line", "pattern": "注册人/售后服务单位名称[：:](.+)"},
         {"doc_glob": "CH1.4*申请表*.docx", "extract": "table_label", "label": "名称", "context": "申请人"}
       ]
     }

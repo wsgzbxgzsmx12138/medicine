@@ -1,0 +1,82 @@
+﻿{
+  "consistency_fields": [
+    {"field": "product_name", "label": "产品名称"},
+    {"field": "pack_specs", "label": "包装规格"},
+    {"field": "manufacturer_name", "label": "注册人/企业名称"},
+    {"field": "intended_use", "label": "预期用途"},
+    {"field": "detection_targets", "label": "检测靶标"}
+  ],
+  "doc_profiles": {
+    "manual": {
+      "match": "*说明书*.docx",
+      "label": "产品说明书",
+      "regulation_ref": "附件4 第5章",
+      "required_sections": [
+        "【产品名称】",
+        "【包装规格】",
+        "【预期用途】",
+        "【检测原理】",
+        "【主要组成成分】",
+        "【储存条件及有效期】",
+        "【样本要求】",
+        "【适用仪器】",
+        "【检验方法】",
+        "【产品性能指标】",
+        "【基本信息】"
+      ],
+      "performance_items": [
+        "分析灵敏度",
+        "最低检出限",
+        "分析特异性",
+        "精密度",
+        "重复性",
+        "阳性判断值",
+        "阳性符合率",
+        "阴性符合率"
+      ],
+      "format_hints": [
+        "章节标题应使用【】括起的规范名称",
+        "产品性能指标须含分析灵敏度/检出限、特异性、精密度或重复性等 PCR 试剂必检项",
+        "基本信息须含注册人名称、生产地址、联系方式"
+      ]
+    },
+    "CH1.4": {
+      "match": "CH1.4*申请表*.docx",
+      "label": "申请表 CH1.4",
+      "regulation_ref": "附件4 第1章 CH1.4",
+      "required_sections": ["产品名称", "预期用途", "包装规格", "申请人"],
+      "format_hints": [
+        "表格形式填写，产品名称/预期用途/包装规格等字段不得留空",
+        "申请人名称须与说明书注册人一致"
+      ]
+    },
+    "CH1.5": {
+      "match": "CH1.5*产品列表*.docx",
+      "label": "产品列表 CH1.5",
+      "regulation_ref": "附件4 第1章 CH1.5",
+      "required_sections": ["产品列表"],
+      "format_hints": [
+        "须列明各包装规格及货号",
+        "产品名称须与申请表、说明书一致"
+      ]
+    },
+    "CH1.11.1": {
+      "match": "CH1.11.1*符合标准*.docx",
+      "label": "符合标准清单 CH1.11.1",
+      "regulation_ref": "附件4 第1章 CH1.11.1",
+      "format_hints": ["须声明申请注册的产品名称", "须列出适用 GB/YY 等标准"]
+    },
+    "CH1.11.5": {
+      "match": "CH1.11.5*真实性*.docx",
+      "label": "真实性声明 CH1.11.5",
+      "regulation_ref": "附件4 第1章 CH1.11.5",
+      "format_hints": ["须含「真实性声明」标题", "声明正文中产品名称须完整准确"]
+    },
+    "CH1.11.6": {
+      "match": "CH1.11.6*符合性*.docx",
+      "label": "符合性声明 CH1.11.6",
+      "regulation_ref": "附件4 第1章 CH1.11.6",
+      "format_hints": ["须含「符合性声明」标题", "声明正文中产品名称须完整准确"]
+    }
+  }
+}

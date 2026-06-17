@@ -22,11 +22,15 @@ class ExtractedInfo:
     instruments: list[str] = field(default_factory=list)
     manufacturer_name: str = "未提及"
     manufacturer_address: str = "未提及"
+    production_address: str = "未提及"
+    production_license: str = "未提及"
+    clinical_eval_summary: str = "未提及"
     contact_info: str = "未提及"
     lod: str = "未提及"
     pos_rate: str = "未提及"
     neg_rate: str = "未提及"
     targets: list[str] = field(default_factory=list)
+    product_list: dict[str, Any] = field(default_factory=dict)
     confidence: dict[str, str] = field(default_factory=dict)
     source_file: str = ""
     llm_used: bool = False
@@ -42,11 +46,15 @@ class ExtractedInfo:
             "instruments": self.instruments,
             "manufacturer_name": self.manufacturer_name,
             "manufacturer_address": self.manufacturer_address,
+            "production_address": self.production_address,
+            "production_license": self.production_license,
+            "clinical_eval_summary": self.clinical_eval_summary,
             "contact_info": self.contact_info,
             "lod": self.lod,
             "pos_rate": self.pos_rate,
             "neg_rate": self.neg_rate,
             "targets": self.targets,
+            "product_list": self.product_list,
             "confidence": self.confidence,
             "source_file": self.source_file,
             "llm_used": self.llm_used,
@@ -57,7 +65,7 @@ SECTION_PATTERNS: dict[str, str] = {
     "product_name": r"【产品名称】\s*\n?\s*(.+?)(?=\n【|\Z)",
     "pack_specs": r"【包装规格】\s*\n?\s*(.+?)(?=\n【|\Z)",
     "intended_use": r"【预期用途】\s*\n?\s*(.+?)(?=\n【|\Z)",
-    "storage_condition": r"【储存条件及有效期】\s*\n?\s*(.+?)(?=\n【|\Z)",
+    "storage_condition": r"【储存条件及有效期】\s*\n?\s*(.+?)(?=\n【[^】]{0,20}】|\Z)",
     "detection_principle": r"【检测原理】\s*\n?\s*(.+?)(?=\n【|\Z)",
     "sample_types": r"适用样本类型[：:]\s*(.+?)(?=\n|\Z)",
     "instruments": r"【适用仪器】\s*\n?\s*(.+?)(?=\n【|\Z)",
@@ -104,11 +112,29 @@ def extract_by_rules(text: str) -> ExtractedInfo:
     info.manufacturer_name = extract_line(text, r"注册人/售后服务单位名称[：:]\s*(.+)") or info.manufacturer_name
     if info.manufacturer_name != "未提及":
         conf["manufacturer_name"] = "高(规则)"
-    info.manufacturer_address = extract_line(text, r"生产企业住所[：:]\s*(.+)") or extract_line(text, r"生产地址[：:]\s*(.+)") or info.manufacturer_address
+    info.manufacturer_address = extract_line(text, r"生产企业住所[：:]\s*(.+)") or info.manufacturer_address
+    info.production_address = extract_line(text, r"生产地址[：:]\s*(.+)") or info.production_address
+    info.production_license = extract_line(text, r"生产许可证编号[：:]\s*(.+)") or info.production_license
     info.contact_info = extract_line(text, r"联系方式[：:]\s*(.+)") or info.contact_info
+    clinical = extract_section(text, r"【?临床评价】?\s*\n?\s*(.+?)(?=\n【|\Z)")
+    if not clinical:
+        clinical = extract_line(text, r"10\.临床评价[：:]\s*(.+?)(?=\n【|\Z)")
+    if clinical:
+        info.clinical_eval_summary = clinical[:500]
+        conf["clinical_eval_summary"] = "高(规则)"
     info.lod = extract_line(text, r"最低检出限[：:为]*\s*(.+?)(?=\n|。)") or extract_line(text, r"最低检测限[：:为]*\s*(.+?)(?=\n|。)") or info.lod
     info.pos_rate = extract_line(text, r"阳性符合率[：:为]*\s*(.+?)(?=\n|。)") or info.pos_rate
     info.neg_rate = extract_line(text, r"阴性符合率[：:为]*\s*(.+?)(?=\n|。)") or info.neg_rate
+
+    # 从预期用途推断检测靶标（规则）
+    targets: list[str] = []
+    for m in re.finditer(r"(ORF1ab|N基因|E基因|S基因|RdRp|[A-Za-z0-9]+基因)", text):
+        t = m.group(1)
+        if t not in targets:
+            targets.append(t)
+    if targets:
+        info.targets = targets
+        conf["targets"] = "高(规则)"
 
     if info.lod != "未提及":
         conf["lod"] = "高(规则)"
@@ -132,6 +158,7 @@ LLM_ENHANCE_FIELDS = frozenset(
         "lod",
         "pos_rate",
         "neg_rate",
+        "detection_targets",
     }
 )
 
@@ -149,7 +176,19 @@ def _trim_intended_use(text: str) -> str:
 
 def merge_llm(info: ExtractedInfo, llm_data: dict[str, Any], *, enhance: bool = False) -> ExtractedInfo:
     for key, val in llm_data.items():
-        if key in ("confidence", "source_section", "source_file", "llm_used", "targets"):
+        if key in ("confidence", "source_section", "source_file", "llm_used"):
+            continue
+        if key == "detection_targets" and isinstance(val, list):
+            info.targets = [str(x).strip() for x in val if str(x).strip()]
+            if info.targets:
+                info.confidence["targets"] = "中(LLM)" if enhance else "中(LLM)"
+            continue
+        if key == "detection_targets" and isinstance(val, str) and val != "未提及":
+            info.targets = [x.strip() for x in re.split(r"[、,，;；]", val) if x.strip()]
+            if info.targets:
+                info.confidence["targets"] = "中(LLM)"
+            continue
+        if key in ("targets",):
             continue
         if val in (None, "", "未提及"):
             continue
@@ -168,6 +207,21 @@ def merge_llm(info: ExtractedInfo, llm_data: dict[str, Any], *, enhance: bool = 
         current = getattr(info, key, None)
 
         if enhance and key in LLM_ENHANCE_FIELDS:
+            # 储存条件：规则常能抓全段，LLM 摘要会丢冻融/开瓶稳定性，保留更完整的一段
+            if key == "storage_condition" and current not in (None, "未提及", "", []):
+                cur_s, llm_s = str(current).strip(), str(llm_val).strip()
+                if len(cur_s) >= len(llm_s) and cur_s not in ("未提及",):
+                    setattr(info, key, cur_s)
+                    cur_norm = normalize_text(cur_s)
+                    llm_norm = normalize_text(llm_s)
+                    info.confidence[key] = (
+                        "高(规则+LLM)" if llm_norm and (cur_norm in llm_norm or llm_norm in cur_norm) else "高(规则)"
+                    )
+                else:
+                    setattr(info, key, llm_val)
+                    info.confidence[key] = "中(LLM)"
+                continue
+
             setattr(info, key, llm_val)
             cur_norm = normalize_text(str(current)) if current not in (None, "未提及", "", []) else ""
             llm_norm = normalize_text(str(llm_val)) if not isinstance(llm_val, list) else ""
@@ -198,17 +252,45 @@ def extract_from_upload(upload_dir: Path, *, use_llm: bool = True) -> ExtractedI
     info = extract_by_rules(text)
     info.source_file = manual.name
 
+    from core.run_logger import get_run_logger
+
+    logger = get_run_logger()
+    if logger:
+        rule_fields = [k for k, v in info.confidence.items() if v]
+        logger.python_only(
+            "阶段3 · 规则正则先扫说明书",
+            f"从《{manual.name}》用正则抽出 {len(rule_fields)} 个字段，"
+            f"产品名称={info.product_name[:40]}{'…' if len(info.product_name) > 40 else ''}",
+        )
+
     if should_use_llm(use_llm):
         info.llm_used = True
         llm_data = extract_with_llm(text)
         if llm_data:
             info = merge_llm(info, llm_data, enhance=True)
+            if logger:
+                enhanced = [k for k, v in info.confidence.items() if "LLM" in str(v)]
+                name_display = f"{info.product_name[:30]}…" if len(info.product_name) > 30 else info.product_name
+                logger.python_only(
+                    "阶段3 · Python 合并大模型结果",
+                    f"大模型精炼/补充了 {len(enhanced)} 个字段：{', '.join(enhanced[:8]) or '无'}；"
+                    f"产品名称仍为「{name_display}」",
+                )
         else:
             info.confidence["_llm"] = "调用失败或未返回有效 JSON"
+            if logger:
+                logger.python_only("阶段3 · 大模型未生效", "全程使用规则提取结果。")
 
     for field_name in ("product_name", "intended_use", "pack_specs"):
         if field_name not in info.confidence and getattr(info, field_name) != "未提及":
             info.confidence[field_name] = "高(规则)"
+
+    from core.product_list import extract_product_list
+
+    pl = extract_product_list(manual, info, use_llm=use_llm)
+    info.product_list = pl.to_dict()
+    if pl.spec_a or pl.spec_b:
+        info.confidence["product_list"] = pl.source
 
     return info
 
