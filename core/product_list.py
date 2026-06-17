@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from docx import Document
+from docx.oxml import OxmlElement
 
 from core.extractor import ExtractedInfo, read_docx_full_text
 from core.llm_client import call_llm, should_use_llm
@@ -132,6 +133,108 @@ def _parse_composition_table(table: Any, *, product_name: str = "") -> list[Prod
     return components
 
 
+@dataclass
+class PackWriteBlock:
+    pack_label: str
+    catalog: str
+    size: int
+    components: list[ProductComponent]
+
+
+def _split_combined_pack_label(label: str) -> list[str]:
+    """将「规格A：大包装：24人份/盒；分管包装：24人份/盒」拆成独立包装规格行。"""
+    label = _norm_cell(label)
+    if not label:
+        return []
+    if "；" not in label and ";" not in label:
+        return [label]
+
+    spec_m = re.match(r"(规格[AB])[：:]", label)
+    spec_prefix = f"{spec_m.group(1)}：" if spec_m else ""
+    out: list[str] = []
+    for part in re.split(r"[；;]", label):
+        part = part.strip()
+        if not part:
+            continue
+        if part.startswith("规格"):
+            out.append(part)
+        elif spec_prefix and re.match(r"(大包装|分管包装)", part):
+            out.append(spec_prefix + part)
+        else:
+            out.append(part)
+    return out if out else [label]
+
+
+def _catalog_for_pack(catalogs: dict[str, str], pack_key: str, sub_label: str) -> str:
+    suffix = ""
+    if "大包装" in sub_label and "分管包装" not in sub_label:
+        suffix = "_bulk"
+    elif "分管包装" in sub_label:
+        suffix = "_tube"
+    for key in (f"{pack_key}{suffix}", pack_key):
+        val = catalogs.get(key)
+        if val and str(val).lower() not in ("null", "none", "未提及", ""):
+            return str(val).strip()
+    return "待补充"
+
+
+def _build_pack_write_blocks(data: ProductListData) -> list[PackWriteBlock]:
+    blocks: list[PackWriteBlock] = []
+    plan: list[tuple[str, int, list[ProductComponent]]] = [
+        ("spec_a", 24, data.spec_a),
+        ("spec_a", 48, data.spec_a),
+        ("spec_a", 96, data.spec_a),
+        ("spec_b", 24, data.spec_b or data.spec_a),
+        ("spec_b", 48, data.spec_b or data.spec_a),
+        ("spec_b", 96, data.spec_b or data.spec_a),
+    ]
+    for prefix, size, components in plan:
+        if not components:
+            continue
+        pack_key = f"{prefix}_{size}"
+        default_spec = "规格A" if prefix == "spec_a" else "规格B"
+        raw_label = data.pack_labels.get(pack_key) or f"{default_spec}：{size}人份/盒"
+        for sub_label in _split_combined_pack_label(raw_label):
+            blocks.append(
+                PackWriteBlock(
+                    pack_label=sub_label,
+                    catalog=_catalog_for_pack(data.catalog_numbers, pack_key, sub_label),
+                    size=size,
+                    components=components,
+                )
+            )
+    return blocks
+
+
+def _new_table_row(n_cols: int = 6) -> Any:
+    tr = OxmlElement("w:tr")
+    for _ in range(n_cols):
+        tc = OxmlElement("w:tc")
+        tc.append(OxmlElement("w:p"))
+        tr.append(tc)
+    return tr
+
+
+def _rebuild_product_list_data_rows(table: Any, data_row_count: int) -> None:
+    """清除模版合并单元格后按所需行数重建数据区，避免大/分管包装分行时错位。"""
+    while len(table.rows) > 1:
+        table._tbl.remove(table.rows[-1]._tr)
+    n_cols = len(table.rows[0].cells) if table.rows else 6
+    for _ in range(data_row_count):
+        table._tbl.append(_new_table_row(n_cols))
+
+
+def _merge_pack_cell_groups(table: Any, ranges: list[tuple[int, int]]) -> None:
+    """每组包装规格合并「包装规格」「货号」列，与监管模版呈现一致。"""
+    for start, end in ranges:
+        if start >= end:
+            continue
+        for col in (0, 1):
+            top = table.cell(start, col)
+            for row_i in range(start + 1, end + 1):
+                top.merge(table.cell(row_i, col))
+
+
 def _parse_pack_labels(pack_specs: str) -> dict[str, str]:
     labels = {k: "" for k in _PACK_KEYS}
     defaults = {
@@ -175,11 +278,18 @@ def _parse_pack_labels(pack_specs: str) -> dict[str, str]:
 def _extract_catalog_from_text(text: str) -> dict[str, str]:
     found: dict[str, str] = {}
     for m in re.finditer(
-        r"(规格A|规格B)[：:\s]*(?:大包装|分管包装)?[：:\s]*(\d+)人份/盒[^0-9]{0,20}(601\d{7,8}|\d{10})",
+        r"(规格A|规格B)\s*[：:\s]*(大包装|分管包装)?[：:\s]*(\d+)\s*人份/盒[^\d]{0,30}(601\d{7,8}|\d{10})",
         text,
     ):
-        key = f"spec_{'a' if 'A' in m.group(1) else 'b'}_{m.group(2)}"
-        found[key] = m.group(3)
+        letter = "a" if "A" in m.group(1) else "b"
+        size = m.group(3)
+        pack_type = m.group(2) or ""
+        key = f"spec_{letter}_{size}"
+        if pack_type == "大包装":
+            key += "_bulk"
+        elif pack_type == "分管包装":
+            key += "_tube"
+        found[key] = m.group(4)
     for m in re.finditer(r"货号[：:\s]*(\d{10,12})", text):
         # single catalog without pack mapping — skip
         pass
@@ -435,35 +545,38 @@ def apply_product_list_to_doc(
 
     if len(doc.tables) >= 1 and data.spec_a:
         table = doc.tables[0]
-        blocks = [
-            ("spec_a_24", 24, data.spec_a),
-            ("spec_a_48", 48, data.spec_a),
-            ("spec_a_96", 96, data.spec_a),
-            ("spec_b_24", 24, data.spec_b or data.spec_a),
-            ("spec_b_48", 48, data.spec_b or data.spec_a),
-            ("spec_b_96", 96, data.spec_b or data.spec_a),
-        ]
+        write_blocks = _build_pack_write_blocks(data)
+        data_row_count = sum(len(block.components) for block in write_blocks)
+        _rebuild_product_list_data_rows(table, data_row_count)
+
         row_idx = 1
         filled_rows = 0
-        for pack_key, size, components in blocks:
-            pack_label = data.pack_labels.get(pack_key) or (
-                f"{'规格A' if 'spec_a' in pack_key else '规格B'}：{size}人份/盒"
-            )
-            catalog = data.catalog_numbers.get(pack_key) or "待补充"
-            for comp in components:
-                if row_idx >= len(table.rows):
-                    break
+        block_ranges: list[tuple[int, int]] = []
+        for block in write_blocks:
+            block_start = row_idx
+            for comp_idx, comp in enumerate(block.components):
                 row = table.rows[row_idx]
                 if len(row.cells) >= 6:
-                    row.cells[0].text = pack_label
-                    row.cells[1].text = catalog
+                    if comp_idx == 0:
+                        row.cells[0].text = block.pack_label
+                        row.cells[1].text = block.catalog
+                    else:
+                        row.cells[0].text = ""
+                        row.cells[1].text = ""
                     row.cells[2].text = comp.category
                     row.cells[3].text = _canonicalize_component_name(comp.name, product)
                     row.cells[4].text = comp.composition
-                    row.cells[5].text = _qty_for_size(comp, size)
+                    row.cells[5].text = _qty_for_size(comp, block.size)
                     filled_rows += 1
                 row_idx += 1
-        written.append(f"主表 {filled_rows} 行（包装规格/货号/组成/组分/成分/数量）")
+            block_ranges.append((block_start, row_idx - 1))
+
+        _merge_pack_cell_groups(table, block_ranges)
+
+        pack_groups = len(write_blocks)
+        written.append(
+            f"主表 {filled_rows} 行（{pack_groups} 组包装规格 × 组分，大包装/分管包装分行）"
+        )
 
     if len(doc.tables) >= 2 and data.comparison:
         table1 = doc.tables[1]

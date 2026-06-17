@@ -88,9 +88,12 @@ def test_scheme_b_fill():
     doc5 = Document(str(ch15))
     t0 = doc5.tables[0].rows[1]
     table_text = " ".join(c.text for r in doc5.tables[0].rows for c in r.cells)
+    pack_cells = [r.cells[0].text.strip() for r in doc5.tables[0].rows[1:] if r.cells[0].text.strip()]
     assert info.product_name.split("（")[0] in doc5.paragraphs[6].text or info.product_name in doc5.paragraphs[6].text
     assert "2019-nCoV" in t0.cells[3].text or "ORF1ab" in t0.cells[3].text
-    assert "分管包装" in t0.cells[0].text
+    assert any("大包装" in c and "分管包装" not in c for c in pack_cells)
+    assert any("分管包装" in c and "大包装" not in c for c in pack_cells)
+    assert not any("大包装" in c and "分管包装" in c for c in pack_cells)
     assert "2019-nCoV阳性对照品" in table_text or "2019-nCoV 阳性对照品" in table_text
     assert "2019-nCoV" in table_text or "ORF1ab" in table_text
     assert "RSV" not in table_text and "MP、RSV" not in table_text
