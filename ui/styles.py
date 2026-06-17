@@ -27,9 +27,15 @@ def inject_global_css(*, hide_sidebar: bool = False, landing: bool = False) -> N
     [data-testid="stToolbar"] { display: none; }
     [data-testid="stDecoration"] { display: none; }
     """ if landing else """
-    .block-container {
-        padding-top: 2rem;
+    .main .block-container {
+        padding-top: 2.75rem !important;
         max-width: 1200px;
+    }
+
+    [data-testid="stMarkdown"],
+    [data-testid="stMarkdownContainer"],
+    [data-testid="element-container"] {
+        overflow: visible !important;
     }
     """
 
@@ -156,25 +162,17 @@ def inject_global_css(*, hide_sidebar: bool = False, landing: bool = False) -> N
         {landing_styles}
 
         /* Workspace */
-        .workspace-header {{
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-            margin-bottom: 1.5rem;
-        }}
-
-        .workspace-title {{
-            font-size: 1.35rem;
-            font-weight: 600;
-            color: #0f172a;
-            margin: 0;
-        }}
-
-        .workspace-breadcrumb {{
+        .main [data-testid="stCaptionContainer"] p {{
             font-size: 0.85rem;
             color: #64748b;
+            line-height: 1.5;
+            margin: 0;
+            padding-top: 2px;
+        }}
+
+        .workspace-header-divider {{
+            border-bottom: 1px solid #e2e8f0;
+            margin: 0.25rem 0 1.5rem;
         }}
 
         div[data-testid="stButton"] > button[kind="primary"] {{

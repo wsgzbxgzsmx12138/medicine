@@ -35,17 +35,9 @@ def _render_classified_catalog(catalog: dict[str, pd.DataFrame]) -> None:
 
 def render_workspace(*, preset_demo: str | None = None) -> bool:
     """Render audit workspace. Returns True if user clicked back to home."""
-    st.markdown(
-        """
-        <div class="workspace-header">
-            <div>
-                <p class="workspace-breadcrumb">首页 / 审核工作台</p>
-                <h2 class="workspace-title">申报资料审核</h2>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.caption("首页 / 审核工作台")
+    st.subheader("申报资料审核")
+    st.markdown('<div class="workspace-header-divider"></div>', unsafe_allow_html=True)
 
     back_col, _ = st.columns([1, 5])
     with back_col:
